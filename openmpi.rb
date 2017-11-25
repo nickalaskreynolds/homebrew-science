@@ -1,6 +1,4 @@
-require 'formula'
-
-class OpenMpi < Formula
+class Openmpi < Formula
   desc "High performance message passing library"
   homepage "https://www.open-mpi.org/"
   url "https://www.open-mpi.org/software/ompi/v3.0/downloads/openmpi-3.0.0.tar.bz2"
@@ -53,10 +51,10 @@ class OpenMpi < Formula
     args << "--enable-mpi-java" if build.with? "java"
     args << "--enable-mpi-cxx" if build.with? "cxx-bindings"
 
-    system "mkdir", "build"
+    mkdir "build"
     system "./autogen.pl" if build.head?
     Dir.chdir("build")
-    system "./configure", *args
+    system "../configure", *args
     system "make", "all"
     system "make", "check"
     system "make", "install"

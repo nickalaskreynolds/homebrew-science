@@ -3,6 +3,7 @@ class Libnl < Formula
   homepage "https://github.com/thom311/libnl"
   url "https://github.com/thom311/libnl.git"
   head "https://github.com/thom311/libnl.git"
+  version '3.4.0'
 
   def install
     mkdir "build"

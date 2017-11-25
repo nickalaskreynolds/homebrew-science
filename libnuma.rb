@@ -3,6 +3,8 @@ class Libnuma < Formula
   homepage "https://github.com/numactl/numactl.git"
   url 'https://github.com/numactl/numactl.git'
   head "https://github.com/numactl/numactl.git"
+  version '2.0.5'
+
 
   def install
     mkdir "build"

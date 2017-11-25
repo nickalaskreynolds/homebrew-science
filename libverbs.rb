@@ -11,6 +11,6 @@ class Libverbs < Formula
     system "./build.sh"
     Dir.chdir("build")
     system "make", "install/local"
-    system "cp ./* #{prefix}"
+    system "cp -r ./* #{prefix}"
   end
 end

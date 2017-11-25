@@ -1,3 +1,5 @@
+require 'formula'
+
 class OpenMpi < Formula
   desc "High performance message passing library"
   homepage "https://www.open-mpi.org/"

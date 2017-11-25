@@ -1,3 +1,5 @@
+require 'formula'
+
 class libnuma < Formula
   desc "NUMA(Not uniform memory access) support for linux"
   homepage "https://github.com/numactl/numactl.git"

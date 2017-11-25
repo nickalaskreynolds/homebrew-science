@@ -1,3 +1,5 @@
+require 'formula'
+
 class libnl < Formula
   desc "Netlink Library Suite"
   homepage "https://github.com/thom311/libnl"

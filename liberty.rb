@@ -8,7 +8,7 @@ class Liberty < Formula
   def install
     mkdir "build"
     Dir.chdir("build")
-    system "../configure","--prefix=#{prefix}"
+    system "../configure --prefix=#{prefix}"
     system "make"
     system "make", "install"
   end

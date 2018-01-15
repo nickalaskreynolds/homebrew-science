@@ -1,60 +1,63 @@
-class FFTW < Formula
+class Fftw < Formula
+  desc "A C subroutine library for computing the discrete FT"
+  homepage "http://fftw.org/"
+  url "http://fftw.org/fftw-3.3.7.tar.gz"
+  version "3.3.7"
 
   def install
-     ENV.deparallelize  # if your formula fails when building in parallel
+    ENV.deparallelize
 
     args = %W[
       --prefix=#{prefix}
-      --enable-shared 
-      --enable-openmp
+      --enable-shared
     ]
 
-    system "mkdir", "d_p"
+    Dir.mkdir("d_p")
     Dir.chdir("d_p")
-    system "../configure",*args
+    system "../configure", *args
     system "make"
     system "make", "install"
     Dir.chdir("..")
 
     args = %W[
       --prefix=#{prefix}
-      --enable-shared 
-      --enable-single 
-      --enable-openmp
+      --enable-shared
+      --enable-single
     ]
 
-    system "mkdir", "s_p"
+    Dir.mkdir("s_p")
     Dir.chdir("s_p")
-    system "../configure",*args
+    system "../configure", *args
     system "make"
     system "make", "install"
     Dir.chdir("..")
 
     args = %W[
       --prefix=#{prefix}
-      --enable-shared 
+      --enable-shared
       --enable-openmp
+      --enable-threads
     ]
 
-    system "mkdir", "d_p_omp"
+    Dir.mkdir("d_p_omp")
     Dir.chdir("d_p_omp")
-    system "../configure",*args 
+    system "../configure", *args
     system "make"
     system "make", "install"
     Dir.chdir("..")
 
     args = %W[
       --prefix=#{prefix}
-      --enable-shared 
-      --enable-single 
+      --enable-shared
+      --enable-single
       --enable-openmp
+      --enable-threads
     ]
 
-    system "mkdir", "s_p_omp"
+    Dir.mkdir("s_p_omp")
     Dir.chdir("s_p_omp")
-    system "../configure",*args 
-
-    Dir.chdir("..")
-
+    system "../configure", *args
+    system "make"
+    system "make", "install"
   end
 end

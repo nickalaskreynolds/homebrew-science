@@ -1,9 +1,8 @@
 require 'formula'
 
 class Radmc3d < Formula
-  homepage 'http://www.ita.uni-heidelberg.de/~dullemond/software/radmc-3d/'
-  url 'http://www.ita.uni-heidelberg.de/~dullemond/software/radmc-3d/radmc-3d_v0.41_07.07.17.zip'
-  sha256 '11dea10c3508dc5aaea68fad01fa9123fe62e490b1c8c0d603a78a4c08da05e9'
+  homepage 'https://github.com/nickalaskreynolds/radmc3d_edits.git'
+  url 'https://github.com/nickalaskreynolds/radmc3d_edits.git'
   version '0.41_107.07.17'
 
   depends_on 'gcc'
@@ -15,10 +14,12 @@ class Radmc3d < Formula
 
   def install
     ENV.deparallelize
+    mkdir "build"
+    Dir.chdir("build")
 
-    system "make", "-C", "version_0.41/src/"
+    system "make", "-C", "src/"
 
-    bin.install "version_0.41/src/radmc3d"
+    bin.install "src/radmc3d"
   end
 end
 

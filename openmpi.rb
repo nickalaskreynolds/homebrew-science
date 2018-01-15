@@ -30,7 +30,6 @@ class Openmpi < Formula
   depends_on "libevent"
   depends_on "libnuma"
   depends_on "libnl"
-  depends_on "liberty"
 
   conflicts_with "mpich", :because => "both install mpi__ compiler wrappers"
   conflicts_with "lcdf-typetools", :because => "both install same set of binaries."

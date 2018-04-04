@@ -1,8 +1,8 @@
 require 'formula'
 
 class Miriad < Formula
-  homepage 'https://github.com/nickalaskreynolds/miriad_linux.git'
-  url 'https://github.com/nickalaskreynolds/miriad_linux.git'
+  homepage 'https://github.com/nickalaskreynolds/miriad_src.git'
+  url 'https://github.com/nickalaskreynolds/miriad_src.git'
   version '4.3.7.20131227'
   keg_only "This is just the way that MIRIAD works."
 

@@ -1,8 +1,8 @@
 require 'formula'
 
 class Miriad < Formula
-  homepage ''
-  url 'ftp://ftp.atnf.csiro.au/pub/software/miriad/miriad-linux64.tar.bz2'
+  homepage 'https://github.com/nickalaskreynolds/miriad_linux.git'
+  url 'https://github.com/nickalaskreynolds/miriad_linux.git'
   version '4.3.7.20131227'
   keg_only "This is just the way that MIRIAD works."
 
@@ -13,7 +13,7 @@ class Miriad < Formula
 
     mkdir "build"
     Dir.chdir("build")
-    system "../configure", "--prefix=#{prefix}", "--with-telescope=carma"
+    system "../configure", "--prefix=#{prefix}"
     system "make"
     system "make", "install"
   end

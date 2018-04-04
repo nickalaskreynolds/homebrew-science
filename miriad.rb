@@ -11,7 +11,9 @@ class Miriad < Formula
   def install
     ENV.deparallelize
 
-    system "./configure", "--prefix=#{prefix}", "--with-telescope=carma"
+    mkdir "build"
+    Dir.chdir("build")
+    system "../configure", "--prefix=#{prefix}", "--with-telescope=carma"
     system "make"
     system "make", "install"
   end

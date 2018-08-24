@@ -7,6 +7,7 @@ class Mpich < Formula
   def install
     ENV.deparallelize
     system "./configure", "--disable-debug",
+                          "--disable-fortran",
                           "--prefix=#{prefix}"
     system "make"
     system "make", "install"

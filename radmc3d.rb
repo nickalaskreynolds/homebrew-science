@@ -1,16 +1,15 @@
 require 'formula'
 
 class Radmc3d < Formula
-  homepage 'https://github.com/nickalaskreynolds/radmc3d_edits.git'
-  url 'https://github.com/nickalaskreynolds/radmc3d_edits.git'
-  version '0.41_107.07.17'
+  homepage 'http://www.ita.uni-heidelberg.de/~dullemond/software/radmc-3d/'
+  url 'http://www.ita.uni-heidelberg.de/~dullemond/software/radmc-3d/radmc-3d_v0.41_07.07.17.zip'
+  sha256 '11dea10c3508dc5aaea68fad01fa9123fe62e490b1c8c0d603a78a4c08da05e9'
+  version_scheme 1
 
   depends_on 'gcc'
-  depends_on 'glibc'
+  depends_on 'glibc' unless OS.mac?
 
-  def patches 
-    DATA
-  end
+  patch :DATA
 
   def install
     ENV.deparallelize
@@ -24,6 +23,26 @@ class Radmc3d < Formula
 end
 
 __END__
+diff --git a/version_0.41/src/amrray_module.f90 b/version_0.41/src/amrray_module.f90
+index d39b9e3..9e02f66 100644
+--- a/version_0.41/src/amrray_module.f90
++++ b/version_0.41/src/amrray_module.f90
+@@ -5571,7 +5571,14 @@ else
+             pc    = ct2*(ray_cart_x**2+ray_cart_y**2)-st2*ray_cart_z**2
+             write(stdo,*) pa,pb/r0,pc/r0**2
+             write(stdo,*) 4*pa*pc/pb**2
+-            stop 1132
++            !stop 1132
++            write(stdo,*) 'Fixing by adjusting the current cell...'
++            if(r0>bxi(2,1)*oneplust) amrray_ix_next = amrray_ix_next + 1
++            if(r0<bxi(1,1)*oneminust) amrray_ix_next = amrray_ix_next - 1
++            if(theta0>bxi(2,2)+tol) amrray_iy_next = amrray_iy_next + 1
++            if(theta0<bxi(1,2)-tol) amrray_iy_next = amrray_iy_next - 1
++            if(phi0>bxi(2,3)+tol) amrray_iz_next = amrray_iz_next + 1
++            if(phi0<bxi(1,3)-tol) amrray_iz_next = amrray_iz_next - 1
+          endif
+       endif
+    endif
 diff --git a/version_0.41/src/camera_module.f90 b/version_0.41/src/camera_module.f90
 index ec59d19..b85c559 100644
 --- a/version_0.41/src/camera_module.f90
@@ -358,10 +377,99 @@ index 1c5f4ac..a23a847 100644
  end subroutine lines_ray1d_init_raytrace
  
 diff --git a/version_0.41/src/main.f90 b/version_0.41/src/main.f90
-index 6c66014..ead03b9 100644
+index 6c66014..f9b7f8d 100644
 --- a/version_0.41/src/main.f90
 +++ b/version_0.41/src/main.f90
-@@ -2342,6 +2342,12 @@ subroutine read_radmcinp_file()
+@@ -50,6 +50,7 @@ program radmc3d
+   !
+   do_montecarlo_therm        = .false.
+   do_montecarlo_mono         = .false.
++  do_montecarlo_scat         = .false.
+   do_userdef_action          = .false.
+   do_vstruct                 = .false.
+   do_raytrace_spectrum       = .false.
+@@ -932,6 +933,72 @@ program radmc3d
+      !       wavelengths for use in other kinds models
+      !       (e.g. photodissociation of molecules or so). 
+      !
++     if(do_montecarlo_scat) then
++        !
++        ! A message:
++        !
++        call write_message_rad_processes()
++        !
++        ! If the dust emission is included, then make sure the dust data,
++        ! density and temperature are read. If yes, do not read again.
++        !
++        if(rt_incl_dust) then
++           call read_dustdata(1)
++           call read_dust_density(1)
++           call read_dust_temperature(1)
++        endif
++        !
++        ! If line emission is included, then make sure the line data are
++        ! read. If yes, then do not read it again.
++        !
++        if(rt_incl_lines) then
++           call read_lines_all(1)
++        endif
++        !
++        ! If gas continuum is included, then make sure the gas continuum
++        ! data are read. If yes, then do not read it again.
++        !
++        if(rt_incl_gascont) then
++           call gascont_init(1)
++        endif
++        !
++        ! Set the camera_frequencies(:) array
++        !
++        call set_camera_frequencies()
++        !
++        ! Set the mc_frequencies(:) array
++        !
++        if(allocated(mc_frequencies)) deallocate(mc_frequencies)
++        mc_nrfreq=camera_nrfreq
++        allocate(mc_frequencies(1:mc_nrfreq),STAT=ierr)
++        if(ierr.ne.0) then
++           write(stdo,*) 'ERROR: Could not allocate mc_frequencies(:) array'
++           stop
++        endif
++        mc_frequencies(:) = camera_frequencies(:)
++        !
++        ! Now call the monochromatic Monte Carlo
++        !
++        call do_monte_carlo_scattering(rt_mcparams,ierror,   &
++               resetseed=do_resetseed,scatsrc=.true.)
++        !
++        ! Write the mean intensities to a file
++        !
++        write(stdo,*) 'Writing mean intensity file...'
++        call write_scat_to_file()
++     endif
++     !
++     !
++     !----------------------------------------------------------------
++     !          DO THE SINGLE-FREQ SCATTERING MONTE CARLO
++     !----------------------------------------------------------------
++     !
++     ! NOTE: This is normally automatically done within the imaging or
++     !       spectrum generating. Here we may wish to do this separately
++     !       simply to be able to get mean intensities at certain
++     !       wavelengths for use in other kinds models
++     !       (e.g. photodissociation of molecules or so). 
++     !
+      if(do_montecarlo_mono) then
+         !
+         ! A message:
+@@ -2079,6 +2146,7 @@ program radmc3d
+         !
+         do_montecarlo_therm        = .false.
+         do_montecarlo_mono         = .false.
++        do_montecarlo_scat         = .false.
+         do_userdef_action          = .false.
+         do_vstruct                 = .false.
+         do_raytrace_spectrum       = .false.
+@@ -2342,6 +2410,12 @@ subroutine read_radmcinp_file()
       call parse_input_integer('camera_interpol_jnu@          ',interpoljnu)
       call parse_input_double ('camera_maxdphi@               ',camera_maxdphi)
       call parse_input_integer('sources_interpol_jnu@         ',interpoljnu)
@@ -374,11 +482,145 @@ index 6c66014..ead03b9 100644
  !     call parse_input_double ('lines_maxdoppler@             ',lines_maxdoppler)
       call parse_input_integer('lines_mode@                   ',lines_mode)
       call parse_input_integer('lines_autosubset@             ',iautosubset)
+@@ -2629,6 +2703,14 @@ subroutine interpet_command_line_options(gotit,fromstdi,quit)
+         !
+         do_montecarlo_mono = .true.
+         gotit = .true.
++     elseif(buffer(1:6).eq.'mcscat') then
++        !
++        ! Do the monochromatic Monte Carlo 
++        ! This computes the local radiation field inside the model
++        ! Useful for other models, e.g. chemistry
++        !
++        do_montecarlo_scat = .true.
++        gotit = .true.
+      elseif(buffer(1:8).eq.'myaction') then
+         !
+         ! Do the userdef action 
 diff --git a/version_0.41/src/montecarlo_module.f90 b/version_0.41/src/montecarlo_module.f90
-index bff63c3..94ea7d5 100644
+index bff63c3..5fa6af7 100644
 --- a/version_0.41/src/montecarlo_module.f90
 +++ b/version_0.41/src/montecarlo_module.f90
-@@ -8732,6 +8732,17 @@ subroutine pick_randomfreq_db(nspec,temp,mc_enerpart,inupick)
+@@ -8139,6 +8139,118 @@ subroutine montecarlo_aligned_randomphot(index,inu,ener,pkg)
+   !
+ end subroutine montecarlo_aligned_randomphot
+ 
++!--------------------------------------------------------------------------
++!                  WRITE SCATTERING PHASE FUNCTION TO FILE
++!--------------------------------------------------------------------------
++subroutine write_scat_to_file()
++  implicit none
++  integer :: icell,index,inu,i,ierr,precis
++  integer(kind=8) :: nn,kk
++  logical :: fex
++  double precision, allocatable :: data(:)
++  !
++  ! Determine the precision
++  !
++  if(rto_single) then
++     precis = 4
++  else
++     precis = 8
++  endif
++  !
++  ! Now write the dust temperature
++  !
++  if(igrid_type.lt.100) then
++     !
++     ! Regular (AMR) grid
++     ! 
++     ! Just make sure that the cell list is complete
++     !
++     if(amr_tree_present) then
++        call amr_compute_list_all()
++     endif
++     !
++     ! Do a stupidity check
++     !
++     if(nrcells.ne.amr_nrleafs) stop 3209
++     !
++     ! Open file and write the mean intensity to it
++     !
++     if(rto_style.eq.1) then
++        !
++        ! Write the mean intensity in ascii form
++        !
++        ! NOTE: The new format is "2", and includes a list of frequencies
++        !
++        open(unit=1,file='scattering_phase.out')
++        write(1,*) 2                                   ! Format number
++        write(1,*) nrcellsinp
++        write(1,*) mc_nrfreq
++        write(1,*) (mc_frequencies(inu),inu=1,mc_nrfreq)
++     elseif(rto_style.eq.2) then
++        !
++        ! Write the mean intensity in f77-style unformatted form,
++        ! using a record length given by rto_reclen
++        !
++        ! NOTE: The new format is "2", and includes a list of frequencies
++        !
++        open(unit=1,file='scattering_phase.uout',form='unformatted')
++        nn = 2
++        kk = rto_reclen
++        write(1) nn,kk               ! Format number and record length
++        nn = nrcellsinp
++        kk = mc_nrfreq
++        write(1) nn,kk
++        write(1) (mc_frequencies(inu),inu=1,mc_nrfreq)
++     elseif(rto_style.eq.3) then
++        !
++        ! C-compliant binary
++        !
++        ! NOTE: The new format is "2", and includes a list of frequencies
++        !
++        open(unit=1,file='scattering_phase.bout',status='replace',access='stream')
++        nn = 2
++        kk = precis
++        write(1) nn,kk               ! Format number and precision
++        nn = nrcellsinp
++        kk = mc_nrfreq
++        write(1) nn,kk
++        write(1) (mc_frequencies(inu),inu=1,mc_nrfreq)
++     else
++        write(stdo,*) 'ERROR: Do not know I/O style ',rto_style
++        stop
++     endif
++     !
++     ! Now write the mean intensity one wavelength at a time 
++     !
++     do inu=1,mc_nrfreq
++        call write_scalarfield(1,rto_style,precis,nrcellsinp, &
++             mc_nrfreq,1,inu,1,rto_reclen,                    &
++             scalar1=mcscat_scatsrc_iquv(:,:,1,1))
++     enddo
++     !
++     ! Close
++     !
++     close(1)
++  else
++     !
++     ! Other grids not yet implemented
++     !
++     write(stdo,*) 'ERROR: Only regular and AMR grids implemented'
++     stop
++  endif
++  !
++  ! If the grid is internally made, then we must make sure that
++  ! the grid has been written to file, otherwise the output file
++  ! created here makes no sense.
++  !
++  if((.not.grid_was_read_from_file).and.(.not.grid_was_written_to_file)) then
++     call write_grid_file()
++     grid_was_written_to_file = .true.     ! Avoid multiple writings
++  endif
++end subroutine write_scat_to_file
++
++
++
+ 
+ !--------------------------------------------------------------------------
+ !                  WRITE MEAN INTENSITY TO FILE
+@@ -8732,6 +8844,17 @@ subroutine pick_randomfreq_db(nspec,temp,mc_enerpart,inupick)
    do ispec=1,dust_nr_species
       enercum(ispec+1) = enercum(ispec) + mc_enerpart(ispec)
    enddo
@@ -397,7 +639,7 @@ index bff63c3..94ea7d5 100644
       rn = ran2(iseed)*enercum(dust_nr_species+1)
  !    BUGFIX by Seokho Lee 24.02.2015:
 diff --git a/version_0.41/src/rtglobal_module.f90 b/version_0.41/src/rtglobal_module.f90
-index 5b7c14a..09ce3e4 100644
+index 5b7c14a..ae3e46f 100644
 --- a/version_0.41/src/rtglobal_module.f90
 +++ b/version_0.41/src/rtglobal_module.f90
 @@ -1,4 +1,5 @@
@@ -406,7 +648,15 @@ index 5b7c14a..09ce3e4 100644
    use constants_module
    use amr_module
    !
-@@ -424,6 +425,9 @@ module rtglobal_module
+@@ -126,6 +127,7 @@ module rtglobal_module
+   logical :: do_montecarlo_mono          ! Do monochromatic Monte Carlo to
+   !                                      ! find the mean intensity in the
+   !                                      ! model. Useful for e.g. chemistry
++  logical :: do_montecarlo_scat          ! Do monochromatic Monte Carlo to
+   logical :: do_userdef_action           ! Do the userdef action
+   logical :: do_vstruct                  ! Do vertical structure
+   logical :: do_raytrace_spectrum        ! Make a spectrum with the camera freq array
+@@ -424,6 +426,9 @@ module rtglobal_module
    !$OMP THREADPRIVATE(ray_dsend,ray_ds,ray_index,ray_indexnext)
    !$OMP THREADPRIVATE(ray_inu,ray_ns,ray_nsmax)
    !
@@ -416,7 +666,7 @@ index 5b7c14a..09ce3e4 100644
  contains
  
  
-@@ -830,12 +834,14 @@ subroutine rtglobal_cleanup
+@@ -830,12 +835,14 @@ subroutine rtglobal_cleanup
    !
    if(allocated(lines_levelpop)) deallocate(lines_levelpop)
    if(allocated(gasvelocity)) deallocate(gasvelocity)

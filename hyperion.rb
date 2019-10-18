@@ -10,8 +10,12 @@ class Hyperion < Formula
 
   def install
     ENV.deparallelize
+
     system "./configure", "--disable-debug",
                           "--prefix=#{prefix}"
+
+    inreplace 'Makefile', ' -g', ''
+
     system "make"
     system "make", "install"
   end

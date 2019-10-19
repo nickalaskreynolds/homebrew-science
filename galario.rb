@@ -4,7 +4,7 @@ class Galario < Formula
   head "https://github.com/mtazzari/galario.git"
 
   depends_on "cmake" => :build
-  depends_on "fftw" => "with-openmp"
+  #depends_on "fftw" => "with-openmp"
   depends_on "python3"
 
   def install
@@ -12,7 +12,7 @@ class Galario < Formula
 
     system "mkdir", "build"
     Dir.chdir("build")
-    system "cmake", *std_cmake_args,
+    system "~/.linuxbrew/bin/cmake", *std_cmake_args,
                     "-DGALARIO_CHECK_CUDA=0",
                     "-DPython_ADDITIONAL_VERSIONS=3.7", ".."
     system "make"

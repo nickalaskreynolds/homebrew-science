@@ -2,7 +2,6 @@ class Fftw < Formula
   desc "A C subroutine library for computing the discrete FT"
   homepage "http://fftw.org/"
   url "http://fftw.org/fftw-3.3.7.tar.gz"
-  version "3.3.7"
   sha256 "3b609b7feba5230e8f6dd8d245ddbefac324c5a6ae4186947670d9ac2cd25573"
 
   def install
